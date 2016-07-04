@@ -8,16 +8,106 @@
 
 import UIKit
 import CoreData
+import AVFoundation
+import SwiftyDropbox
+import CoreSpotlight
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    // MARK: - var and let
+    var mainAudioPlayer: AVAudioPlayer!
+    let userDefault = NSUserDefaults.standardUserDefaults()
+    let storyboard = UIStoryboard(name: "Main", bundle: NSBundle.mainBundle())
 
+    
+//    override func remoteControlReceivedWithEvent(event: UIEvent) {
+//        if event.type == UIEventType.RemoteControl {
+//            switch event.subtype {
+//            case UIEventSubtype.RemoteControlPlay:
+//                mainAudioPlayer.play()
+//                break
+//            case UIEventSubtype.RemoteControlPause:
+//                mainAudioPlayer.pause()
+//                break
+//            default: break
+//            }
+//        }
+//    }
+
+//    func nextT() {
+//        mainAudioPlayer.stop()
+//        mainAudioPlayer.prepareToPlay()
+//        mainAudioPlayer.play()
+//    }
+    
+    
+    
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.
+        let mainView = userDefault.valueForKey("mainView") as? String
+//        print(mainView)
+        var touchVC: UIViewController!
+//        let storyboard = UIStoryboard(name: "Main", bundle: NSBundle.mainBundle())
+        
+        if mainView == nil {
+            touchVC = storyboard.instantiateViewControllerWithIdentifier("mainTabBarController")
+            
+            // notification for spotlight first search
+
+        } else {
+            touchVC = storyboard.instantiateViewControllerWithIdentifier(mainView!)
+        }
+        
+        Dropbox.setupWithAppKey("6945lo9r9ra71ys")
+        
+     
+        self.window?.rootViewController = touchVC
         return true
+    }
+    
+  
+    
+    func application(app: UIApplication, openURL url: NSURL, options: [String : AnyObject]) -> Bool {
+        if let authResult = Dropbox.handleRedirectURL(url) {
+            switch authResult {
+            case .Success(let token):
+                print("Success \(token)")
+            case .Error(let authError, let descriptionError):
+                print("Error \(authError), \(descriptionError)")
+            }
+        }
+        return false
+    }
+    
+    
+    func application(application: UIApplication, continueUserActivity userActivity: NSUserActivity, restorationHandler: ([AnyObject]?) -> Void) -> Bool {
+        print("continueUserActivity")
+//        userDefault.setBool(true, forKey: "applicationDelegateOpen")
+        if userActivity.activityType == CSSearchableItemActionType {
+            print("CSSearchableItemActionType")
+            if let identifier = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+                userDefault.setValue(identifier, forKey: "spotlightIdentifier")
+                userDefault.setBool(true, forKey: "spotlightBool")
+                print(identifier)
+                // it is for define whihc screnn will be loaded after spotlight search
+                let mainView = userDefault.valueForKey("mainView") as? String
+                
+                if mainView == nil {
+                let firstTable = storyboard.instantiateViewControllerWithIdentifier("mainTabBarController") as! UITabBarController
+                firstTable.selectedIndex = 0
+                self.window?.rootViewController = firstTable
+                } else {
+                    let firstTable = storyboard.instantiateViewControllerWithIdentifier(mainView!)
+                    self.window?.rootViewController = firstTable
+                }
+                
+                return true
+            }
+        }
+        return false // false
     }
 
     func applicationWillResignActive(application: UIApplication) {
@@ -49,7 +139,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     lazy var applicationDocumentsDirectory: NSURL = {
         // The directory the application uses to store the Core Data store file. This code uses a directory named "Alexsander-Khitev.Music" in the application's documents Application Support directory.
         let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
-        return urls[urls.count-1] as! NSURL
+        return urls[urls.count-1] 
     }()
 
     lazy var managedObjectModel: NSManagedObjectModel = {
@@ -65,7 +155,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let url = self.applicationDocumentsDirectory.URLByAppendingPathComponent("Music.sqlite")
         var error: NSError? = nil
         var failureReason = "There was an error creating or loading the application's saved data."
-        if coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil, error: &error) == nil {
+        do {
+            try coordinator!.addPersistentStoreWithType(NSSQLiteStoreType, configuration: nil, URL: url, options: nil)
+        } catch var error1 as NSError {
+            error = error1
             coordinator = nil
             // Report any error we got.
             var dict = [String: AnyObject]()
@@ -77,6 +170,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             NSLog("Unresolved error \(error), \(error!.userInfo)")
             abort()
+        } catch {
+            fatalError()
         }
         
         return coordinator
@@ -88,7 +183,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if coordinator == nil {
             return nil
         }
-        var managedObjectContext = NSManagedObjectContext()
+        var managedObjectContext = NSManagedObjectContext(concurrencyType: NSManagedObjectContextConcurrencyType.MainQueueConcurrencyType)
         managedObjectContext.persistentStoreCoordinator = coordinator
         return managedObjectContext
     }()
@@ -98,11 +193,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func saveContext () {
         if let moc = self.managedObjectContext {
             var error: NSError? = nil
-            if moc.hasChanges && !moc.save(&error) {
-                // Replace this implementation with code to handle the error appropriately.
-                // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                NSLog("Unresolved error \(error), \(error!.userInfo)")
-                abort()
+            if moc.hasChanges {
+                do {
+                    try moc.save()
+                } catch let error1 as NSError {
+                    error = error1
+                    // Replace this implementation with code to handle the error appropriately.
+                    // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+                    NSLog("Unresolved error \(error), \(error!.userInfo)")
+                    abort()
+                }
             }
         }
     }

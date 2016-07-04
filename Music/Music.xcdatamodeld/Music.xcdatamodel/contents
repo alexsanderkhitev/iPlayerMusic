@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model name="Test1.xcdatamodel" userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" macOSVersion="Automatic" iOSVersion="Automatic">
-    <elements/>
+<model userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="9525" systemVersion="15C50" minimumToolsVersion="Automatic">
+    <entity name="Playlist" representedClassName="Playlist" syncable="YES">
+        <attribute name="playlistCoverImage" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="playlistCreatedDate" optional="YES" attributeType="Date" syncable="YES"/>
+        <attribute name="playlistName" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="songRelationship" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Song" inverseName="playlistRelationship" inverseEntity="Song" syncable="YES"/>
+    </entity>
+    <entity name="Song" representedClassName="Song" syncable="YES">
+        <attribute name="songAlbum" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="songArtist" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="songArtwork" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="songData" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="songDate" optional="YES" attributeType="Date" syncable="YES"/>
+        <attribute name="songPathExtension" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="songTitle" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="playlistRelationship" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Playlist" inverseName="songRelationship" inverseEntity="Playlist" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="Playlist" positionX="-288" positionY="-0" width="128" height="105"/>
+        <element name="Song" positionX="-11" positionY="11" width="128" height="165"/>
+    </elements>
 </model>
